@@ -1,73 +1,154 @@
 # AIx Origin Website
 
-## Reopen Checklist
+这是一份给协作者和后续接手者看的主文档。先看这里，再看 `host info.md`。
 
-在重新打开项目、准备继续编辑之前，先确认下面几件事：
+## 1. 项目概况
 
-1. 本机 MySQL 已启动
-2. `.venv` 虚拟环境可用
-3. Django 服务器已启动
-4. 浏览器访问的是 `http://127.0.0.1:8000/`
+AIx Origin Website 是一个由 Django + MySQL + Vue/Vite 组成的网站。
 
-## Start Order
+核心结构：
 
-### 1. 启动 MySQL
+- Django project: `aixorigin/`
+- Django app: `website/`
+- Vue frontend: `frontend/`
+- 前端入口页: `frontend/src/App.vue`
+- 前端构建产物: `frontend/dist/`
 
-如果 MySQL 还没运行，先启动它：
+## 2. 本地开发
 
-```bash
-brew services start mysql
-```
+开始前先确认：
 
-如果已经启动，但网站打不开，可以重启一次：
+- `.venv` 可用
+- MySQL 已启动
+- `.env` 配置存在
 
-```bash
-brew services restart mysql
-```
-
-### 2. 确认数据库配置
-
-项目默认读取 `.env`：
-
-- `MYSQL_DATABASE=aixorigin`
-- `MYSQL_USER=aixorigin`
-- `MYSQL_PASSWORD=AixOriginMysql666`
-- `MYSQL_HOST=127.0.0.1`
-- `MYSQL_PORT=3306`
-
-当前 Django 实际使用本机 MySQL socket 连接，无需手动改动 `.env`。
-
-### 3. 进入虚拟环境
+常用启动顺序：
 
 ```bash
 source .venv/bin/activate
-```
-
-### 4. 启动 Django
-
-```bash
 python manage.py runserver 127.0.0.1:8000
+cd frontend
+npm run build
 ```
 
-### 5. 打开网站
-
-浏览器访问：
-
-```text
-http://127.0.0.1:8000/
-```
-
-## Troubleshooting
-
-- 如果 `http://127.0.0.1:8000/` 无法打开，先检查 Django 是否在运行
-- 如果 Django 启动时报数据库错误，先确认 MySQL 已启动
-- 如果你直接打开 `frontend/dist/index.html`，页面可能无法正常工作，因为它依赖 Django 提供的路由和资源
-
-## Useful Commands
+如果需要快速检查：
 
 ```bash
-source .venv/bin/activate
 python manage.py check
-python manage.py runserver 127.0.0.1:8000
-brew services restart mysql
 ```
+
+## 3. 协作规则
+
+- 先拉最新代码，再开始改动
+- 每个协作者使用自己的分支
+- 不要直接往 `main` 硬推
+- 不要覆盖别人未完成的修改
+- 改完先检查，再提交
+
+建议流程：
+
+```bash
+git checkout main
+git pull
+git checkout -b feature/your-change
+```
+
+完成后：
+
+```bash
+python manage.py check
+cd frontend
+npm run build
+cd ..
+git status
+git add .
+git commit -m "Describe the change"
+git push origin feature/your-change
+```
+
+## 4. Git 提交范围
+
+建议提交：
+
+- `aixorigin/`
+- `website/`
+- `frontend/src/`
+- `frontend/public/`
+- `requirements.txt`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `website/migrations/*.py`
+- `README.md`
+- `docs/`
+- `.env.example`
+
+不要提交：
+
+- `.env`
+- `.venv/`
+- `frontend/node_modules/`
+- `frontend/dist/`
+- `db.sqlite3`
+- `media/`
+- `backups/`
+- 数据库导出文件
+- 真实用户或报名数据
+
+## 5. 服务器和部署
+
+生产环境在香港阿里云 ECS 上。
+
+服务器操作建议：
+
+- 用宝塔面板管理 Nginx、SSL 和服务重启
+- 安装阿里云客户端
+- 官方链接：<https://help.aliyun.com/zh/ecs/user-guide/overview-of-alibaba-cloud-client>
+
+部署时常用流程：
+
+```bash
+cd /www/wwwroot/aixorigin
+git pull
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic --noinput
+cd frontend
+npm install
+npm run build
+```
+
+然后重启 Django 服务，并在面板里重载 Nginx。
+
+## 6. 环境变量
+
+每台机器都应有自己的 `.env`。
+
+保留 `.env.example` 的变量名和示例值，但不要放真实密码。
+
+示例：
+
+```bash
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1,47.79.17.48,aixorigin.innoaixhku.top
+CSRF_TRUSTED_ORIGINS=https://aixorigin.innoaixhku.top
+MYSQL_DATABASE=aixorigin
+MYSQL_USER=aixorigin
+MYSQL_PASSWORD=change-me
+MYSQL_SOCKET=/tmp/mysql.sock
+```
+
+## 7. 数据和安全
+
+- `.env` 只放本机或服务器私密配置
+- 参与者数据进 MySQL，不进 Git
+- 备份文件放私有存储，不要提交仓库
+- `.sql`、`.base` 和上传文件不要进仓库
+
+## 8. 常见检查点
+
+- Django 后台 `/admin/` 要能打开
+- 首页 `/` 由 Django 返回前端页面
+- 前端改动后要重新构建
+- 数据库报错先看 MySQL 和 `.env`
+

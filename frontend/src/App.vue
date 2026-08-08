@@ -287,7 +287,7 @@
             </div>
             <div class="overview-glass-cell p-5 sm:p-6 reveal" style="transition-delay:.06s">
               <p class="text-lg sm:text-xl font-medium tracking-tight text-neutral-500">时间</p>
-              <p class="mt-4 text-xl sm:text-2xl font-semibold tracking-tight text-white">2026.09.16 — 2026.09.20</p>
+              <p class="mt-4 text-xl sm:text-2xl font-semibold tracking-tight text-white">2026.08.31 — 2026.09.06</p>
               <p class="mt-2 text-sm sm:text-base text-neutral-400">共 7 天 · 线上 + 线下混合模式</p>
             </div>
             <div class="overview-glass-cell p-5 sm:p-6 reveal" style="transition-delay:.12s">

@@ -741,7 +741,7 @@ export async function initAixOriginPage() {
                 infoCards[0].querySelector('p:nth-of-type(2)').textContent = 'Hong Kong + Shenzhen';
                 infoCards[0].querySelector('p:nth-of-type(3)').textContent = 'First dual-city edition';
                 infoCards[1].querySelector('p:nth-of-type(1)').textContent = 'Dates';
-                infoCards[1].querySelector('p:nth-of-type(2)').textContent = '2026.09.16 — 2026.09.20';
+                infoCards[1].querySelector('p:nth-of-type(2)').textContent = '2026.08.31 — 2026.09.06';
                 infoCards[1].querySelector('p:nth-of-type(3)').textContent = '7 days · hybrid online + offline';
                 infoCards[2].querySelector('p:nth-of-type(1)').textContent = 'Scale';
                 infoCards[2].querySelector('p:nth-of-type(2)').textContent = '300+ on-site builders';
