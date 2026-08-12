@@ -37,7 +37,12 @@ function loadScript(src, asyncAttr = false) {
 
 async function loadExternalScripts() {
   for (const script of externalScripts) {
-    await loadScript(script.src, script.asyncAttr);
+    try {
+      await loadScript(script.src, script.asyncAttr);
+    } catch (error) {
+      // Keep the page usable even when external CDNs are unavailable.
+      console.warn(error);
+    }
   }
 }
 
@@ -48,13 +53,17 @@ export async function initAixOriginPage() {
   {
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-2M6V79H761');
+    if (typeof window.gtag === 'function') {
+      gtag('js', new Date());
+      gtag('config', 'G-2M6V79H761');
+    }
   }
 
   // Original page script 2
   {
-    lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
+    if (window.lucide?.createIcons) {
+      window.lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
+    }
     
           // Header contrast on scroll
           const header = document.getElementById('siteHeader');

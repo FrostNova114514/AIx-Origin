@@ -14,7 +14,7 @@
     <header id="siteHeader" class="fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b border-transparent">
       <div class="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
         <a href="/" class="flex items-center" aria-label="AIx Origin Summit">
-          <img src="/static/images/aix-origin-logo-smooth.png" alt="AIx Origin Summit" class="h-[18px] w-auto">
+          <img :src="staticPath('images/aix-origin-logo-smooth.png')" alt="AIx Origin Summit" class="h-[18px] w-auto">
         </a>
         <nav class="horizon-nav-shell hidden md:flex items-center text-sm text-neutral-300" aria-label="Primary">
           <a href="/story/" class="horizon-nav-link">
@@ -94,7 +94,7 @@
           </div>
 
           <h1 id="heroHeading" class="max-w-5xl reveal in">
-            <img src="/static/images/aix-origin-logo-smooth.png" alt="AIx Origin - Trace Origin, Build Together." class="w-full max-w-[720px] h-auto">
+            <img :src="staticPath('images/aix-origin-logo-smooth.png')" alt="AIx Origin - Trace Origin, Build Together." class="w-full max-w-[720px] h-auto">
           </h1>
 
           <div class="mt-auto flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between reveal lg:absolute lg:inset-x-0 lg:bottom-10 lg:mt-0 lg:px-8" style="transition-delay:.3s">
@@ -109,7 +109,7 @@
                 </a>
               </div>
             </div>
-            <img src="/static/images/innoai-logo-transparent.png" alt="INNOAI" class="w-[120px] sm:w-[150px] h-auto">
+            <img :src="staticPath('images/innoai-logo-transparent.png')" alt="INNOAI" class="w-[120px] sm:w-[150px] h-auto">
           </div>
         </div>
       </section>
@@ -345,38 +345,38 @@
                 <div class="logo-region">
                   <p class="logo-region-title">香港高校</p>
                   <div class="school-logo-grid school-logo-grid-featured">
-                    <div class="school-logo-item"><p>香港大学</p><img src="/static/images/ppt-logos/slide-11/image18.png" alt="香港大学 logo"></div>
-                    <div class="school-logo-item"><p>香港中文大学</p><img src="/static/images/ppt-logos/slide-11/image20.png" alt="香港中文大学 logo"></div>
-                    <div class="school-logo-item"><p>香港科技大学</p><img src="/static/images/ppt-logos/slide-11/image19.png" alt="香港科技大学 logo"></div>
+                    <div class="school-logo-item"><p>香港大学</p><img :src="staticPath('images/ppt-logos/slide-11/image18.png')" alt="香港大学 logo"></div>
+                    <div class="school-logo-item"><p>香港中文大学</p><img :src="staticPath('images/ppt-logos/slide-11/image20.png')" alt="香港中文大学 logo"></div>
+                    <div class="school-logo-item"><p>香港科技大学</p><img :src="staticPath('images/ppt-logos/slide-11/image19.png')" alt="香港科技大学 logo"></div>
                   </div>
                 </div>
                 <div class="logo-region">
                   <p class="logo-region-title">内地高校</p>
                   <div class="school-logo-grid school-logo-grid-compact">
-                    <div class="school-logo-item"><p>清华深研院</p><img src="/static/images/ppt-logos/slide-11/image16.png" alt="清华深研院 logo"></div>
-                    <div class="school-logo-item"><p>北大深研院</p><img src="/static/images/ppt-logos/slide-11/image17.png" alt="北大深研院 logo"></div>
-                    <div class="school-logo-item"><p>哈工深</p><img src="/static/images/ppt-logos/slide-11/image21.png" alt="哈工深 logo"></div>
+                    <div class="school-logo-item"><p>清华深研院</p><img :src="staticPath('images/ppt-logos/slide-11/image16.png')" alt="清华深研院 logo"></div>
+                    <div class="school-logo-item"><p>北大深研院</p><img :src="staticPath('images/ppt-logos/slide-11/image17.png')" alt="北大深研院 logo"></div>
+                    <div class="school-logo-item"><p>哈工深</p><img :src="staticPath('images/ppt-logos/slide-11/image21.png')" alt="哈工深 logo"></div>
                   </div>
                 </div>
                 <div class="logo-region">
                   <p class="logo-region-title">海外高校</p>
                   <div class="school-logo-grid school-logo-grid-overseas">
-                    <div class="school-logo-item"><p>Yale</p><img src="/static/images/ppt-logos/slide-11/image25.png" alt="Yale logo"></div>
-                    <div class="school-logo-item"><p>UPenn</p><img src="/static/images/ppt-logos/slide-11/image23.png" alt="UPenn logo"></div>
-                    <div class="school-logo-item"><p>NYU</p><img src="/static/images/ppt-logos/slide-11/image22.png" alt="NYU logo"></div>
-                    <div class="school-logo-item"><p>JHU</p><img src="/static/images/ppt-logos/slide-11/image24.png" alt="JHU logo"></div>
-                    <div class="school-logo-item"><p>NUS</p><img src="/static/images/ppt-logos/slide-11/image31.png" alt="NUS logo"></div>
-                    <div class="school-logo-item"><p>NTU</p><img src="/static/images/ppt-logos/slide-11/image32.png" alt="NTU logo"></div>
+                    <div class="school-logo-item"><p>Yale</p><img :src="staticPath('images/ppt-logos/slide-11/image25.png')" alt="Yale logo"></div>
+                    <div class="school-logo-item"><p>UPenn</p><img :src="staticPath('images/ppt-logos/slide-11/image23.png')" alt="UPenn logo"></div>
+                    <div class="school-logo-item"><p>NYU</p><img :src="staticPath('images/ppt-logos/slide-11/image22.png')" alt="NYU logo"></div>
+                    <div class="school-logo-item"><p>JHU</p><img :src="staticPath('images/ppt-logos/slide-11/image24.png')" alt="JHU logo"></div>
+                    <div class="school-logo-item"><p>NUS</p><img :src="staticPath('images/ppt-logos/slide-11/image31.png')" alt="NUS logo"></div>
+                    <div class="school-logo-item"><p>NTU</p><img :src="staticPath('images/ppt-logos/slide-11/image32.png')" alt="NTU logo"></div>
                   </div>
                 </div>
                 <div class="logo-region">
                   <p class="logo-region-title">香港更多高校</p>
                   <div class="school-logo-grid school-logo-grid-local">
-                    <div class="school-logo-item"><p>PolyU</p><img src="/static/images/ppt-logos/slide-11/image26.png" alt="PolyU logo"></div>
-                    <div class="school-logo-item"><p>CityU</p><img src="/static/images/ppt-logos/slide-11/image30.png" alt="CityU logo"></div>
-                    <div class="school-logo-item"><p>HKBU</p><img src="/static/images/ppt-logos/slide-11/image27.png" alt="HKBU logo"></div>
-                    <div class="school-logo-item"><p>LingU</p><img src="/static/images/ppt-logos/slide-11/image28.png" alt="LingU logo"></div>
-                    <div class="school-logo-item"><p>EdUHK</p><img src="/static/images/ppt-logos/slide-11/image29.png" alt="EdUHK logo"></div>
+                    <div class="school-logo-item"><p>PolyU</p><img :src="staticPath('images/ppt-logos/slide-11/image26.png')" alt="PolyU logo"></div>
+                    <div class="school-logo-item"><p>CityU</p><img :src="staticPath('images/ppt-logos/slide-11/image30.png')" alt="CityU logo"></div>
+                    <div class="school-logo-item"><p>HKBU</p><img :src="staticPath('images/ppt-logos/slide-11/image27.png')" alt="HKBU logo"></div>
+                    <div class="school-logo-item"><p>LingU</p><img :src="staticPath('images/ppt-logos/slide-11/image28.png')" alt="LingU logo"></div>
+                    <div class="school-logo-item"><p>EdUHK</p><img :src="staticPath('images/ppt-logos/slide-11/image29.png')" alt="EdUHK logo"></div>
                   </div>
                 </div>
               </div>
@@ -410,46 +410,45 @@
                 <div class="partner-feature">
                   <p class="logo-region-title">联合主办单位</p>
                   <div class="partner-logo-stack">
-                    <img src="/static/images/ppt-logos/slide-17/image58.jpeg" alt="鲲腾能科 logo">
-                    <img src="/static/images/ppt-logos/slide-17/tenwings-accelerator.png" alt="Tenwings Accelerator logo">
+                    <img :src="staticPath('images/ppt-logos/slide-17/image58.jpg')" alt="鲲腾能科 logo">
+                    <img :src="staticPath('images/ppt-logos/slide-17/tenwings-accelerator.png')" alt="Tenwings Accelerator logo">
                   </div>
                 </div>
                 <div class="partner-main">
                   <div class="logo-region">
                     <p class="logo-region-title">支持单位</p>
                     <div class="partner-logo-grid partner-logo-grid-support">
-                      <div class="partner-logo-card partner-logo-card-composite"><img src="/static/images/ppt-logos/slide-17/viewpoint-yueqian.png" alt="观点跃迁 logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/image62.png" alt="SoftSunc logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/image63.png" alt="TokenDance logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image42.png" alt="tuya logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/insta360.png" alt="Insta360 影石 logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/studyspace.png" alt="StudySpace logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/medo.png" alt="MeDo logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/gobi-partners.png" alt="Gobi Partners logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image61.png" alt="支持单位 logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image37.png" alt="奇绩创坛 logo"></div>
+                      <div class="partner-logo-card partner-logo-card-composite"><img :src="staticPath('images/ppt-logos/slide-17/viewpoint-yueqian.png')" alt="观点跃迁 logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/image62.png')" alt="SoftSunc logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/image63.png')" alt="TokenDance logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/insta360.png')" alt="Insta360 影石 logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/studyspace.png')" alt="StudySpace logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/medo.png')" alt="MeDo logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/gobi-partners.png')" alt="Gobi Partners logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image61.png')" alt="支持单位 logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image37.png')" alt="奇绩创坛 logo"></div>
                     </div>
                   </div>
                   <div class="logo-region">
                     <p class="logo-region-title">社群组织</p>
                     <div class="partner-logo-grid partner-logo-grid-community">
-                      <div class="partner-logo-card partner-logo-card-innoai"><img src="/static/images/ppt-logos/slide-17/innoai-white.webp" alt="INNOAI logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image36.png" alt="agency 青年力社区 logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image45.jpeg" alt="colorblock logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image46.png" alt="观塔 logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/neic.png" alt="NEIC logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/image53.png" alt="Wharton Alumni Club Beijing logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image57.jpeg" alt="W创 logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/image60.png" alt="BitGates Web3 logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/emerge.png" alt="emerge logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image55.jpeg" alt="HKUNAA logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image49.png" alt="ISEA logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/image50.jpeg" alt="UChicago Venture Club logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/wave.png" alt="WAVE logo"></div>
-                      <div class="partner-logo-card"><img src="/static/images/ppt-logos/slide-17/uci.png" alt="UCI logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/see-ai.png" alt="SEE AI logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/atox.png" alt="ATOX logo"></div>
-                      <div class="partner-logo-card partner-logo-card-wide"><img src="/static/images/ppt-logos/slide-17/waytoagi.png" alt="WaytoAGI logo"></div>
+                      <div class="partner-logo-card partner-logo-card-innoai"><img :src="staticPath('images/ppt-logos/slide-17/innoai-white.webp')" alt="INNOAI logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image36.png')" alt="agency 青年力社区 logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image45.jpeg')" alt="colorblock logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image46.png')" alt="观塔 logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/neic.png')" alt="NEIC logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/image53.png')" alt="Wharton Alumni Club Beijing logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image57.jpeg')" alt="W创 logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/image60.png')" alt="BitGates Web3 logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/emerge.png')" alt="emerge logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image55.jpeg')" alt="HKUNAA logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image49.png')" alt="ISEA logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/image50.jpeg')" alt="UChicago Venture Club logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/wave.png')" alt="WAVE logo"></div>
+                      <div class="partner-logo-card"><img :src="staticPath('images/ppt-logos/slide-17/uci.png')" alt="UCI logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/see-ai.png')" alt="SEE AI logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/atox.png')" alt="ATOX logo"></div>
+                      <div class="partner-logo-card partner-logo-card-wide"><img :src="staticPath('images/ppt-logos/slide-17/waytoagi.png')" alt="WaytoAGI logo"></div>
                     </div>
                   </div>
                 </div>
@@ -895,7 +894,7 @@
                     赛事咨询，赛制答疑，组队
                   </p>
                 </div>
-                <img src="/static/images/community-group.jpg" alt="加入交流群二维码" class="w-full max-w-[180px] justify-self-start md:justify-self-end bg-white/18 p-2 backdrop-blur-sm border border-white/10">
+                <img :src="staticPath('images/community-group.jpg')" alt="加入交流群二维码" class="w-full max-w-[180px] justify-self-start md:justify-self-end bg-white p-1">
               </div>
             </div>
             <div class="bg-neutral-950/90 p-6 sm:p-8 reveal">
@@ -908,7 +907,7 @@
                     商务合作 / 媒体合作 / 赛道赞助
                   </p>
                 </div>
-                <img src="/static/images/amanda-wechat.jpg" alt="Amanda微信二维码" class="w-full max-w-[180px] justify-self-start md:justify-self-end bg-white p-2">
+                <img :src="staticPath('images/amanda-wechat.jpg')" alt="Amanda微信二维码" class="w-full max-w-[180px] justify-self-start md:justify-self-end bg-white p-2">
               </div>
             </div>
             <div class="bg-neutral-950/90 p-6 sm:p-8 reveal">
@@ -921,7 +920,7 @@
                     一个以实践为导向的社群
                   </p>
                 </div>
-                <img src="/static/images/innoai-application-form.png" alt="加入 InnoAI x HKU 二维码" class="w-full max-w-[220px] justify-self-start md:justify-self-end bg-white p-3">
+                <img :src="staticPath('images/innoai-application-form-d6f1424d.png')" alt="加入 InnoAI x HKU 二维码" class="w-full max-w-[220px] justify-self-start md:justify-self-end bg-white p-3">
               </div>
             </div>
           </div>
@@ -1133,6 +1132,11 @@ const pageByPath = {
   '/community/': 'community',
   '/announcement/': 'announcement',
   '/faq/': 'faq',
+};
+
+const staticPath = (path) => {
+  const cleanPath = path.replace(/^\/+/, '');
+  return window.location.protocol === 'file:' ? `./static/${cleanPath}` : `/static/${cleanPath}`;
 };
 
 const normalizedPath = window.location.pathname.endsWith('/')

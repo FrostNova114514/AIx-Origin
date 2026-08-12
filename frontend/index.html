@@ -3,10 +3,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AIx Origin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      if (window.location.protocol === 'file:' && !window.location.pathname.includes('/dist/')) {
+        window.location.replace(new URL('./dist/index.html', window.location.href));
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="/static/js/tailwindcss-3.4.17.js"></script>
   </head>
   <body class="bg-neutral-950 text-neutral-100 antialiased selection:bg-white selection:text-neutral-950">
     <div id="app"></div>
