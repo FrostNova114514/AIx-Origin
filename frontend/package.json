@@ -9,11 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5.40"
+    "gsap": "^3.12.5",
+    "lucide": "^0.468.0",
+    "three": "^0.160.1",
+    "vue": "^3.5.41"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
+    "autoprefixer": "^10.4.21",
     "lightningcss-darwin-arm64": "^1.33.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
     "vite": "^8.2.0"
   }
 }

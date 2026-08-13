@@ -405,7 +405,7 @@
                 <p class="mt-3 text-sm sm:text-base text-neutral-500">+ 更多</p>
               </div>
             </div>
-            <div class="lg:col-span-12 reveal" style="transition-delay:.14s">
+            <div v-if="false" class="lg:col-span-12 reveal" style="transition-delay:.14s">
               <div class="logo-board partner-logo-board" aria-label="合作方 logo">
                 <div class="partner-feature">
                   <p class="logo-region-title">联合主办单位</p>
@@ -1139,10 +1139,11 @@ const staticPath = (path) => {
   return window.location.protocol === 'file:' ? `./static/${cleanPath}` : `/static/${cleanPath}`;
 };
 
-const normalizedPath = window.location.pathname.endsWith('/')
-  ? window.location.pathname
-  : `${window.location.pathname}/`;
-const currentPage = pageByPath[normalizedPath] || 'home';
+const normalizePagePath = (pathname) => {
+  const cleanPath = pathname.replace(/\/index\.html$/, '/');
+  return cleanPath.endsWith('/') ? cleanPath : `${cleanPath}/`;
+};
+const currentPage = pageByPath[normalizePagePath(window.location.pathname)] || 'home';
 const uiLang = (() => {
   try {
     return window.localStorage.getItem('aixorigin-lang') || 'zh-CN';

@@ -7,10 +7,13 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 
 from website.models import Contract
+from website.questionnaire_fields import QUESTIONNAIRE_FIELD_ORDER
 
 
 FIELD_MAP = {
+    'submitter': '提交人',
     'name': '姓名',
+    'remember': '你还记得吗',
     'phone': '手机号',
     'email': '电子邮箱',
     'identity': '你的身份 2',
@@ -41,6 +44,8 @@ FIELD_MAP = {
     'past_18_months': '在过去18个月内，你做过哪些有趣的事？请尽可能详尽地描述。',
     'public_contact': '是否愿意信息公开联系方式给合作方公司用于招聘/投资对接',
     'feishu_summary': '总结',
+    'is_approved': '是否通过审核',
+    'approval_email_sent': '是否发送邮件',
 }
 
 
@@ -115,13 +120,17 @@ class Command(BaseCommand):
         if software_other:
             software_ai_skills.append(software_other)
 
-        return {
+        payload = {
+            'submitter': get('submitter') or '',
             'name': get('name') or '未填写姓名',
+            'remember': get('remember') or '',
             'phone': get('phone') or '',
             'email': get('email') or '',
             'identity': identity,
+            'identity_other': identity_other or '',
             'background': get('background') or '',
             'team_method': team_method or '',
+            'team_method_extra': team_method_extra or '',
             'team_name': get('team_name') or '',
             'participation_city': get('participation_city') or '',
             'track_shenzhen': get('track_shenzhen') or '',
@@ -130,6 +139,7 @@ class Command(BaseCommand):
             'github_homepage': self.as_url(get('github_homepage')),
             'project_description': get('project_description') or '',
             'post_event_followup': post_event_followup or '',
+            'post_event_followup_other': post_event_followup_other or '',
             'skill_programming': self.as_rating(get('skill_programming')),
             'skill_hardware': self.as_rating(get('skill_hardware')),
             'skill_research': self.as_rating(get('skill_research')),
@@ -137,16 +147,31 @@ class Command(BaseCommand):
             'skill_collaboration': self.as_rating(get('skill_collaboration')),
             'skill_other': get('skill_other') or '',
             'hardware_skills': hardware_skills,
+            'hardware_other': hardware_other or '',
             'software_ai_skills': software_ai_skills,
+            'software_other': software_other or '',
             'social_links': get('social_links') or '',
             'past_18_months': get('past_18_months') or '',
             'public_contact': get('public_contact') or '',
             'feishu_summary': get('feishu_summary') or '',
+            'is_approved': self.as_bool(get('is_approved')),
+            'approval_email_sent': self.as_bool(get('approval_email_sent')),
             'feishu_raw_record': {
                 'source': 'xlsx',
-                'fields': {key: self.clean(value) for key, value in record.items()},
+                'fields': self.build_fields_in_question_order(record),
             },
         }
+        return payload
+
+    def build_fields_in_question_order(self, record):
+        ordered = {}
+        for key in QUESTIONNAIRE_FIELD_ORDER:
+            if key in record:
+                ordered[key] = self.clean(record.get(key))
+        for key, value in record.items():
+            if key not in ordered:
+                ordered[key] = self.clean(value)
+        return ordered
 
     def find_matches(self, payload):
         email = payload.get('email')
@@ -248,3 +273,7 @@ class Command(BaseCommand):
         if '.' in value and ' ' not in value:
             return f'https://{value}'
         return ''
+
+    def as_bool(self, value):
+        value = self.clean(value).lower()
+        return value in {'1', 'true', 'yes', 'y', '是', '通过', '已通过', '发送', '已发送'}

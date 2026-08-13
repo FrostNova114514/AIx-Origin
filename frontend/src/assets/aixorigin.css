@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body { background-color: #020408; }
 body { font-family: 'Archivo', sans-serif; }
 .mono { font-family: 'IBM Plex Mono', monospace; }

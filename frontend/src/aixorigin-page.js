@@ -1,69 +1,21 @@
-const externalScripts = [
-  {
-    "src": "https://www.googletagmanager.com/gtag/js?id=G-2M6V79H761",
-    "asyncAttr": true
-  },
-  {
-    "src": "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js",
-    "asyncAttr": false
-  },
-  {
-    "src": "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js",
-    "asyncAttr": false
-  },
-  {
-    "src": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
-    "asyncAttr": false
-  }
-];
-
-function loadScript(src, asyncAttr = false) {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-aixorigin-src="' + src + '"]');
-    if (existing) {
-      if (existing.dataset.loaded === 'true') resolve();
-      else existing.addEventListener('load', resolve, { once: true });
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = asyncAttr;
-    script.dataset.aixoriginSrc = src;
-    script.addEventListener('load', () => { script.dataset.loaded = 'true'; resolve(); }, { once: true });
-    script.addEventListener('error', () => reject(new Error('Failed to load ' + src)), { once: true });
-    document.head.appendChild(script);
-  });
-}
-
-async function loadExternalScripts() {
-  for (const script of externalScripts) {
-    try {
-      await loadScript(script.src, script.asyncAttr);
-    } catch (error) {
-      // Keep the page usable even when external CDNs are unavailable.
-      console.warn(error);
-    }
-  }
-}
+import { createIcons, icons } from 'lucide';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import * as THREE from 'three';
 
 export async function initAixOriginPage() {
-  await loadExternalScripts();
+  window.gsap = gsap;
+  window.ScrollTrigger = ScrollTrigger;
+  window.THREE = THREE;
 
   // Original page script 1
   {
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    if (typeof window.gtag === 'function') {
-      gtag('js', new Date());
-      gtag('config', 'G-2M6V79H761');
-    }
   }
 
   // Original page script 2
   {
-    if (window.lucide?.createIcons) {
-      window.lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
-    }
+    createIcons({ icons, attrs: { 'stroke-width': 1.5 } });
     
           // Header contrast on scroll
           const header = document.getElementById('siteHeader');
@@ -734,38 +686,56 @@ export async function initAixOriginPage() {
                 setText(storyCityParas[0], 'From robotics to wearables, from IoT to edge AI, nowhere matches Shenzhen when it comes to turning ideas into hardware.');
                 setText(storyCityParas[1], 'Whether it is finance and Web3, or life sciences and healthcare, Hong Kong is the best launchpad to take things global.');
                 setHTML(storyBuildSend, 'Built on one side, delivered on the other—<br>For the first time, your gap can be seen, filled, and placed into the hands of the people who need it without breaking in the middle.');
-                storyClosingLeft.querySelectorAll('p').forEach(function (p, i) {
-                  if (i === 0) p.textContent = 'Do you remember the first time you built something completely on your own?';
-                  if (i === 1) p.textContent = 'No one taught you. You just stared, adjusted, failed, tried again. Then one moment later, it moved, lit up, and became real.';
-                  if (i === 2) p.textContent = 'That feeling is not pride. It is the realization that the world can be nudged by your own hands.';
-                });
-                storyClosingRight.querySelectorAll('p').forEach(function (p, i) {
-                  if (i === 0) p.textContent = 'September 2026, Hong Kong & Shenzhen.';
-                  if (i === 1) p.textContent = 'We turn the lights on, set the table, and put other stubborn builders beside you. Then we step back and watch you create.';
-                });
-    
+                if (storyClosingLeft) {
+                  storyClosingLeft.querySelectorAll('p').forEach(function (p, i) {
+                    if (i === 0) p.textContent = 'Do you remember the first time you built something completely on your own?';
+                    if (i === 1) p.textContent = 'No one taught you. You just stared, adjusted, failed, tried again. Then one moment later, it moved, lit up, and became real.';
+                    if (i === 2) p.textContent = 'That feeling is not pride. It is the realization that the world can be nudged by your own hands.';
+                  });
+                }
+                if (storyClosingRight) {
+                  storyClosingRight.querySelectorAll('p').forEach(function (p, i) {
+                    if (i === 0) p.textContent = 'September 2026, Hong Kong & Shenzhen.';
+                    if (i === 1) p.textContent = 'We turn the lights on, set the table, and put other stubborn builders beside you. Then we step back and watch you create.';
+                  });
+                }
+
                 setText(infoLabel, '(03) Information');
                 setText(infoTitle, 'Event Overview');
-                infoCards[0].querySelector('p:nth-of-type(1)').textContent = 'Location';
-                infoCards[0].querySelector('p:nth-of-type(2)').textContent = 'Hong Kong + Shenzhen';
-                infoCards[0].querySelector('p:nth-of-type(3)').textContent = 'First dual-city edition';
-                infoCards[1].querySelector('p:nth-of-type(1)').textContent = 'Dates';
-                infoCards[1].querySelector('p:nth-of-type(2)').textContent = '2026.08.31 — 2026.09.06';
-                infoCards[1].querySelector('p:nth-of-type(3)').textContent = '7 days · hybrid online + offline';
-                infoCards[2].querySelector('p:nth-of-type(1)').textContent = 'Scale';
-                infoCards[2].querySelector('p:nth-of-type(2)').textContent = '300+ on-site builders';
-                infoCards[2].querySelector('p:nth-of-type(3)').textContent = 'Developers / founders / hardware / creatives';
-                infoCards[3].querySelector('p:nth-of-type(1)').textContent = 'Universities';
-                infoCards[3].querySelector('p:nth-of-type(2)').textContent = '30+ schools';
-                infoCards[3].querySelector('p:nth-of-type(3)').textContent = 'HK top 8 + mainland + overseas';
-                infoCards[3].querySelector('p:nth-of-type(4)').textContent = 'University alliance';
-                infoCards[4].querySelector('p:nth-of-type(1)').textContent = 'After';
-                infoCards[4].querySelector('p:nth-of-type(2)').textContent = 'Investment and resource follow-up';
-                infoCards[5].querySelector('p:nth-of-type(1)').textContent = 'Language';
-                infoCards[5].querySelector('p:nth-of-type(2)').textContent = 'Bilingual Chinese and English';
-                infoCards[6].querySelector('p:nth-of-type(1)').textContent = 'Teams';
-                infoCards[6].querySelector('p:nth-of-type(2)').textContent = '2 - 5 people per team';
-                infoCards[6].querySelector('p:nth-of-type(3)').textContent = 'Solo signups allowed; organizers will match teammates';
+                if (infoCards[0]) {
+                  infoCards[0].querySelector('p:nth-of-type(1)').textContent = 'Location';
+                  infoCards[0].querySelector('p:nth-of-type(2)').textContent = 'Hong Kong + Shenzhen';
+                  infoCards[0].querySelector('p:nth-of-type(3)').textContent = 'First dual-city edition';
+                }
+                if (infoCards[1]) {
+                  infoCards[1].querySelector('p:nth-of-type(1)').textContent = 'Dates';
+                  infoCards[1].querySelector('p:nth-of-type(2)').textContent = '2026.08.31 — 2026.09.06';
+                  infoCards[1].querySelector('p:nth-of-type(3)').textContent = '7 days · hybrid online + offline';
+                }
+                if (infoCards[2]) {
+                  infoCards[2].querySelector('p:nth-of-type(1)').textContent = 'Scale';
+                  infoCards[2].querySelector('p:nth-of-type(2)').textContent = '300+ on-site builders';
+                  infoCards[2].querySelector('p:nth-of-type(3)').textContent = 'Developers / founders / hardware / creatives';
+                }
+                if (infoCards[3]) {
+                  infoCards[3].querySelector('p:nth-of-type(1)').textContent = 'Universities';
+                  infoCards[3].querySelector('p:nth-of-type(2)').textContent = '30+ schools';
+                  infoCards[3].querySelector('p:nth-of-type(3)').textContent = 'HK top 8 + mainland + overseas';
+                  infoCards[3].querySelector('p:nth-of-type(4)').textContent = 'University alliance';
+                }
+                if (infoCards[4]) {
+                  infoCards[4].querySelector('p:nth-of-type(1)').textContent = 'After';
+                  infoCards[4].querySelector('p:nth-of-type(2)').textContent = 'Investment and resource follow-up';
+                }
+                if (infoCards[5]) {
+                  infoCards[5].querySelector('p:nth-of-type(1)').textContent = 'Language';
+                  infoCards[5].querySelector('p:nth-of-type(2)').textContent = 'Bilingual Chinese and English';
+                }
+                if (infoCards[6]) {
+                  infoCards[6].querySelector('p:nth-of-type(1)').textContent = 'Teams';
+                  infoCards[6].querySelector('p:nth-of-type(2)').textContent = '2 - 5 people per team';
+                  infoCards[6].querySelector('p:nth-of-type(3)').textContent = 'Solo signups allowed; organizers will match teammates';
+                }
     
                 setText(tracksLabel, '(04) Tracks');
                 setText(tracksTitle, 'Four tracks, two city DNA');
@@ -817,10 +787,10 @@ export async function initAixOriginPage() {
                 setText(footerStudio, 'Studio');
                 setText(footerSocial, 'Social');
                 setText(footerContact, 'Contact');
-                footerNav[0].textContent = 'Story';
-                footerNav[1].textContent = 'Information';
-                footerNav[2].textContent = 'Community';
-                footerNav[3].textContent = 'FAQ';
+                if (footerNav[0]) footerNav[0].textContent = 'Story';
+                if (footerNav[1]) footerNav[1].textContent = 'Information';
+                if (footerNav[2]) footerNav[2].textContent = 'Community';
+                if (footerNav[3]) footerNav[3].textContent = 'FAQ';
               }
     
               applyTextMap(langCode);

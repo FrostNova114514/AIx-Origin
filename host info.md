@@ -6,9 +6,10 @@
 
 ## Server
 
-- 云服务器公网 IP：`47.79.17.48`
+- 云服务器公网 IP：`8.217.248.59`
 - SSH 用户：`root`
-- 面板地址：`https://47.79.17.48:29414/c519078d`
+- SSH 密码：`Coco3939`
+- 面板地址：`https://8.217.248.59:29414/c519078d`
 - 面板账号：`8pfgoano`
 - 面板密码：`66830924`
 
@@ -18,6 +19,8 @@
 - 服务器上传目录：`/www/wwwroot/aixorigin`
 - Django 项目根目录：`/www/wwwroot/aixorigin`
 - 前端构建目录：`/www/wwwroot/aixorigin/frontend/dist`
+- 线上报名数据库：`/www/wwwroot/aixorigin/db.sqlite3`
+- 当前域名 `aixorigin.innoai.org.cn` 解析到 `8.217.248.59`，后续 SSH / 部署 / 导出数据均连接这台服务器。
 
 ## Connection
 
@@ -35,7 +38,7 @@
 1. 先读本文件
 2. 检查是否已经连到服务器
 3. 检查站点目录是否在 `/www/wwwroot/aixorigin`
-4. 检查 Django / Nginx / MySQL 是否正常
+4. 检查 Django / Nginx / SQLite 是否正常
 5. 再开始改网站、导数据或发版
 
 ## Notes
