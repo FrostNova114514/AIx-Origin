@@ -59,3 +59,15 @@ class Contract(models.Model):
 
     def __str__(self):
         return f'{self.name} - {self.email}'
+
+    def save(self, *args, **kwargs):
+        if not self.feishu_record_id:
+            numeric_ids = [
+                int(record_id)
+                for record_id in Contract.objects.exclude(feishu_record_id__isnull=True)
+                .exclude(feishu_record_id='')
+                .values_list('feishu_record_id', flat=True)
+                if str(record_id).isdigit()
+            ]
+            self.feishu_record_id = str((max(numeric_ids) if numeric_ids else 0) + 1)
+        super().save(*args, **kwargs)

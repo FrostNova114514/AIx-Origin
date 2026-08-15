@@ -188,7 +188,10 @@ class Command(BaseCommand):
             with zipfile.ZipFile(path) as archive:
                 workbook = ET.fromstring(archive.read('xl/workbook.xml'))
                 relationships = ET.fromstring(archive.read('xl/_rels/workbook.xml.rels'))
-                relmap = {rel.attrib['Id']: rel.attrib['Target'].lstrip('/') for rel in relationships}
+                relmap = {
+                    rel.attrib['Id']: self.workbook_relative_path(rel.attrib['Target'])
+                    for rel in relationships
+                }
                 sheet = workbook.find(
                     '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}sheets/'
                     '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}sheet'
@@ -224,6 +227,12 @@ class Command(BaseCommand):
             ''.join(text.text or '' for text in item.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t'))
             for item in root
         ]
+
+    def workbook_relative_path(self, target):
+        target = target.lstrip('/')
+        if target.startswith('xl/'):
+            return target
+        return f'xl/{target}'
 
     def cell_value(self, cell, shared_strings):
         cell_type = cell.attrib.get('t')

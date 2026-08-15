@@ -197,7 +197,7 @@ class ContractAdmin(admin.ModelAdmin):
             return self.export_value(value)
 
         return [
-            field('编号', obj.feishu_record_id or index),
+            obj.feishu_record_id or index,
             field('提交人', obj.submitter),
             field('提交时间', timezone.localtime(obj.created_at).strftime('%Y-%m-%d %H:%M:%S') if obj.created_at else ''),
             field('姓名', obj.name),
