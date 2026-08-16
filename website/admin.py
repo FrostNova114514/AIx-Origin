@@ -57,6 +57,10 @@ class ContractAdmin(admin.ModelAdmin):
         'is_approved',
         'approval_email_sent',
     )
+    list_editable = (
+        'is_approved',
+        'approval_email_sent',
+    )
     search_fields = (
         'name',
         'phone',
@@ -162,7 +166,8 @@ class ContractAdmin(admin.ModelAdmin):
 
     def export_form(self, request):
         rows = [QUESTIONNAIRE_FIELD_ORDER]
-        for index, contract in enumerate(self.get_queryset(request).order_by('created_at', 'id'), start=1):
+        queryset = self.get_export_queryset(request).order_by('created_at', 'id')
+        for index, contract in enumerate(queryset, start=1):
             rows.append(self.contract_to_export_row(contract, index))
 
         content = build_xlsx(rows, sheet_name='问卷')
@@ -173,6 +178,13 @@ class ContractAdmin(admin.ModelAdmin):
         )
         response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
         return response
+
+    def get_export_queryset(self, request):
+        clean_get = request.GET.copy()
+        clean_get.pop('p', None)
+        clean_get.pop('all', None)
+        request.GET = clean_get
+        return self.get_changelist_instance(request).queryset
 
     @admin.action(description='导出选中的表单为 Excel')
     def export_selected_as_xlsx(self, request, queryset):

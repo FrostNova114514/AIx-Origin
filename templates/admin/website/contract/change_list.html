@@ -1,5 +1,85 @@
 {% extends "admin/change_list.html" %}
 
+{% block extrahead %}
+  {{ block.super }}
+  <script>
+    (function () {
+      function buttonText(element) {
+        return (element && element.textContent ? element.textContent : '').replace(/\s+/g, '').trim();
+      }
+
+      function updateSaveButtonPosition() {
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('button, input[type="submit"], a'));
+        var saveButton = buttons.find(function (element) {
+          var text = buttonText(element);
+          var value = (element.value || '').replace(/\s+/g, '').trim();
+          return element.getAttribute('name') === '_save' || text === '保存' || value === '保存';
+        });
+        var deleteButton = buttons.find(function (element) {
+          return buttonText(element) === '删除' || (element.value || '').replace(/\s+/g, '').trim() === '删除';
+        });
+
+        if (!saveButton) {
+          return false;
+        }
+
+        if (saveButton.tagName === 'INPUT') {
+          saveButton.value = '保存更改';
+        } else {
+          Array.prototype.slice.call(saveButton.childNodes).forEach(function (node) {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() === '保存') {
+              node.textContent = ' 保存更改';
+            }
+          });
+          if (buttonText(saveButton) === '保存') {
+            saveButton.textContent = '保存更改';
+          }
+        }
+
+        if (deleteButton && deleteButton.parentNode && saveButton.parentNode) {
+          var saveItem = saveButton.closest('li') || saveButton;
+          var deleteItem = deleteButton.closest('li') || deleteButton;
+          if (deleteItem.parentNode && saveItem !== deleteItem.nextSibling) {
+            deleteItem.parentNode.insertBefore(saveItem, deleteItem.nextSibling);
+          }
+        }
+        return true;
+      }
+
+      function updateExportAllLink() {
+        var exportLinks = Array.prototype.slice.call(document.querySelectorAll('a')).filter(function (element) {
+          return buttonText(element) === '导出全部';
+        });
+        if (!exportLinks.length) {
+          return false;
+        }
+
+        var currentParams = new URLSearchParams(window.location.search);
+        currentParams.delete('p');
+        var suffix = currentParams.toString();
+        exportLinks.forEach(function (link) {
+          link.href = 'export-form/' + (suffix ? '?' + suffix : '');
+        });
+        return true;
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        updateSaveButtonPosition();
+        updateExportAllLink();
+        var attempts = 0;
+        var timer = window.setInterval(function () {
+          attempts += 1;
+          var buttonsReady = updateSaveButtonPosition();
+          var exportReady = updateExportAllLink();
+          if ((buttonsReady && exportReady) || attempts > 20) {
+            window.clearInterval(timer);
+          }
+        }, 200);
+      });
+    })();
+  </script>
+{% endblock %}
+
 {% block object-tools-items %}
   <li>
     <a href="export-form/" class="addlink">导出全部</a>
