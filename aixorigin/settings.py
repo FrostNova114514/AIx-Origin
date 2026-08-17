@@ -152,6 +152,17 @@ STATICFILES_DIRS = [
     BASE_DIR / 'frontend' / 'dist',
 ]
 
+DEFAULT_FROM_EMAIL = getenv('DEFAULT_FROM_EMAIL', 'AIxOrigin <no-reply@aixorigin.innoai.org.cn>')
+EMAIL_BACKEND = getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = getenv('EMAIL_USE_TLS', 'true').lower() in ('1', 'true', 'yes', 'on')
+EMAIL_USE_SSL = getenv('EMAIL_USE_SSL', 'false').lower() in ('1', 'true', 'yes', 'on')
+EMAIL_TIMEOUT = int(getenv('EMAIL_TIMEOUT', '30'))
+EMAIL_SUBJECT_PREFIX = getenv('EMAIL_SUBJECT_PREFIX', '[AIxOrigin] ')
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -168,6 +179,11 @@ SIMPLEUI_CONFIG = {
                     'name': '联系表单',
                     'icon': 'fas fa-list',
                     'url': 'website/contract/',
+                },
+                {
+                    'name': '发送邮件记录',
+                    'icon': 'fas fa-envelope',
+                    'url': 'website/emaillog/',
                 }
             ],
         }

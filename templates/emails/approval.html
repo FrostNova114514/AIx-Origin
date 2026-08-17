@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ subject }}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;color:#111827;">
+    <div style="max-width:720px;margin:0 auto;padding:32px 20px;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:28px 28px 16px;background:linear-gradient(135deg,#0f172a,#111827);color:#fff;">
+          <img src="{{ logo_url }}" alt="AIxOrigin" style="height:38px;display:block;margin-bottom:16px;">
+          <h1 style="margin:0;font-size:24px;line-height:1.3;">{% if approved %}你的申请已通过审核{% else %}申请状态更新{% endif %}</h1>
+          <p style="margin:10px 0 0;font-size:14px;opacity:.88;">{{ contract.name }}，你好。</p>
+        </div>
+        <div style="padding:28px;">
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.8;">我们已经收到你的报名信息，当前状态已更新。</p>
+          <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;line-height:1.8;">
+            <tr><td style="padding:8px 0;color:#6b7280;width:120px;">姓名</td><td style="padding:8px 0;">{{ contract.name }}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280;">邮箱</td><td style="padding:8px 0;">{{ contract.email }}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280;">手机号</td><td style="padding:8px 0;">{{ contract.phone }}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280;">参加方式</td><td style="padding:8px 0;">{{ contract.participation_city }}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280;">赛道</td><td style="padding:8px 0;">{% if contract.track_shenzhen %}{{ contract.track_shenzhen }}{% else %}{{ contract.track_hong_kong }}{% endif %}</td></tr>
+          </table>
+          <div style="margin-top:24px;padding:16px 18px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:14px;line-height:1.8;">如需查看报名细节，请登录后台。我们会继续通过邮件更新后续安排。</p>
+          </div>
+          <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">AIxOrigin 团队</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -48,7 +48,7 @@
 
       function updateExportAllLink() {
         var exportLinks = Array.prototype.slice.call(document.querySelectorAll('a')).filter(function (element) {
-          return buttonText(element) === '导出全部';
+          return buttonText(element) === '导出全部' || buttonText(element) === '发送邮件到';
         });
         if (!exportLinks.length) {
           return false;
@@ -58,7 +58,8 @@
         currentParams.delete('p');
         var suffix = currentParams.toString();
         exportLinks.forEach(function (link) {
-          link.href = 'export-form/' + (suffix ? '?' + suffix : '');
+          var base = buttonText(link) === '发送邮件到' ? 'send-mail/' : 'export-form/';
+          link.href = base + (suffix ? '?' + suffix : '');
         });
         return true;
       }
@@ -81,6 +82,9 @@
 {% endblock %}
 
 {% block object-tools-items %}
+  <li>
+    <a href="send-mail/" class="addlink">发送邮件到</a>
+  </li>
   <li>
     <a href="export-form/" class="addlink">导出全部</a>
   </li>

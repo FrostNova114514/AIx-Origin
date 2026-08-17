@@ -1,0 +1,127 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <h1 style="margin-bottom:16px;">发送邮件到</h1>
+  <div style="margin:0 0 16px;padding:12px 14px;border-radius:8px;background:{% if email_host %}#ecfdf5{% else %}#fff7ed{% endif %};border:1px solid {% if email_host %}#a7f3d0{% else %}#fed7aa{% endif %};">
+    <strong>邮件服务：</strong>
+    {% if email_host %}
+      已配置 {{ email_host }}，发件人 {{ default_from_email }}
+    {% else %}
+      尚未配置 EMAIL_HOST，请先在 .env 填入专业邮件服务参数后再发送。
+    {% endif %}
+  </div>
+  <form method="get" style="margin-bottom:16px;">
+    <div class="module" style="padding:16px;">
+      <h2 style="margin:0 0 12px;">筛选收件人</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <label>
+          <span style="display:block;margin-bottom:6px;color:#6b7280;">搜索</span>
+          <input type="search" name="q" value="{{ mail_filters.search }}" placeholder="姓名 / 邮箱 / 手机号 / 编号" style="width:100%;padding:8px 10px;">
+        </label>
+        {% for item in mail_filters.options %}
+        <label>
+          <span style="display:block;margin-bottom:6px;color:#6b7280;">{{ item.label }}</span>
+          <select name="{{ item.name }}" style="width:100%;padding:8px 10px;">
+            <option value="">全部</option>
+            {% for option in item.options %}
+              <option value="{{ option }}" {% if item.value == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endfor %}
+        {% for item in mail_filters.booleans %}
+        <label>
+          <span style="display:block;margin-bottom:6px;color:#6b7280;">{{ item.label }}</span>
+          <select name="{{ item.name }}" style="width:100%;padding:8px 10px;">
+            <option value="">全部</option>
+            <option value="1" {% if item.value == "1" %}selected{% endif %}>是</option>
+            <option value="0" {% if item.value == "0" %}selected{% endif %}>否</option>
+          </select>
+        </label>
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button type="submit">应用筛选</button>
+        <a href="{% url 'admin:website_contract_send_mail' %}" class="button">清空筛选</a>
+      </div>
+    </div>
+  </form>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div style="display:grid;gap:16px;max-width:960px;">
+      <div class="module">
+        <table>
+          <tr>
+            <th style="width:120px;text-align:left;">主题</th>
+            <td><input type="text" name="subject" value="{{ subject }}" style="width:100%;padding:8px 10px;"></td>
+          </tr>
+          <tr>
+            <th style="text-align:left;">正文</th>
+            <td><textarea name="body" rows="12" style="width:100%;padding:10px;font-family:inherit;">{{ body }}</textarea></td>
+          </tr>
+          <tr>
+            <th style="text-align:left;">额外收件邮箱</th>
+            <td>
+              <textarea name="extra_recipients" rows="3" placeholder="可输入多个邮箱，用换行、空格、逗号或分号分隔" style="width:100%;padding:10px;font-family:inherit;">{{ extra_recipients }}</textarea>
+              <p style="margin:6px 0 0;color:#6b7280;">这里输入的邮箱会一起发送，但不会写入联系表单，也不会影响“是否发送邮件”。</p>
+            </td>
+          </tr>
+          <tr>
+            <th style="text-align:left;">附件</th>
+            <td><input type="file" name="attachment"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="module">
+        <h2 style="margin:0 0 12px;">勾选收件人</h2>
+        <p style="margin:0 0 12px;color:#6b7280;">可使用占位符：{{姓名}}、{{邮箱}}、{{手机号}}、{{参加方式}}。当前列表共 {{ contracts|length }} 位申请者。</p>
+        <div style="margin-bottom:12px;">
+          <button type="button" onclick="document.querySelectorAll('input[name=selected_ids]').forEach(function(item){item.checked=true})">全选</button>
+          <button type="button" onclick="document.querySelectorAll('input[name=selected_ids]').forEach(function(item){item.checked=false})">取消全选</button>
+        </div>
+        <div style="max-height:420px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;">
+          <table class="adminlist" style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="width:60px;">选中</th>
+                <th>编号</th>
+                <th>姓名</th>
+                <th>邮箱</th>
+                <th>手机号</th>
+                <th>参加方式</th>
+                <th>是否通过</th>
+                <th>已发邮件</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contract in contracts %}
+              <tr>
+                <td><input type="checkbox" name="selected_ids" value="{{ contract.id }}" checked></td>
+                <td>{{ contract.feishu_record_id|default:contract.id }}</td>
+                <td>{{ contract.name }}</td>
+                <td>{{ contract.email }}</td>
+                <td>{{ contract.phone }}</td>
+                <td>{{ contract.participation_city }}</td>
+                <td>{{ contract.is_approved|yesno:"是,否" }}</td>
+                <td>{{ contract.approval_email_sent|yesno:"是,否" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button type="submit" class="default" name="send" value="1">发送邮件</button>
+        <a href="{% url 'admin:website_contract_changelist' %}" class="button">返回列表</a>
+      </div>
+    </div>
+    {% for id in contract_ids %}
+      <input type="hidden" name="contract_ids" value="{{ id }}">
+    {% endfor %}
+  </form>
+</div>
+{% endblock %}

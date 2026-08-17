@@ -1,15 +1,22 @@
 import io
+import re
+import smtplib
 import zipfile
 from datetime import datetime
 from xml.sax.saxutils import escape
 
+from django.conf import settings
 from django.contrib import admin
+from django.contrib import messages
+from django.core.mail import EmailMessage
+from django.db.models import Q
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 
-from .models import Contract
+from .models import Contract, EmailLog
 from .questionnaire_fields import QUESTIONNAIRE_FIELD_ORDER
 
 
@@ -56,6 +63,7 @@ class ContractAdmin(admin.ModelAdmin):
         'feishu_summary',
         'is_approved',
         'approval_email_sent',
+        'email_logs_link',
     )
     list_editable = (
         'is_approved',
@@ -161,6 +169,11 @@ class ContractAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.export_form),
                 name='website_contract_export_form',
             ),
+            path(
+                'send-mail/',
+                self.admin_site.admin_view(self.send_mail_view),
+                name='website_contract_send_mail',
+            ),
         ]
         return custom_urls + urls
 
@@ -200,6 +213,216 @@ class ContractAdmin(admin.ModelAdmin):
         )
         response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
         return response
+
+    def send_mail_view(self, request):
+        queryset = self.get_mail_queryset(request).order_by('created_at', 'id')
+        ids = [str(item.id) for item in queryset]
+
+        if request.method == 'POST' and 'send' in request.POST:
+            contract_ids = request.POST.getlist('selected_ids') or request.POST.getlist('contract_ids')
+            contracts = Contract.objects.filter(id__in=contract_ids).order_by('created_at', 'id')
+            subject = request.POST.get('subject', '').strip() or 'AIxOrigin 申请结果通知'
+            body = request.POST.get('body', '').strip()
+            extra_recipients = self.parse_extra_recipients(request.POST.get('extra_recipients', ''))
+            attachment = request.FILES.get('attachment')
+            recipient_count = 0
+            sent_addresses = set()
+            for contract in contracts:
+                if not contract.email:
+                    continue
+                normalized_email = contract.email.strip().lower()
+                if normalized_email in sent_addresses:
+                    continue
+                personalized_body = self.render_mail_body(body, contract)
+                email = EmailMessage(
+                    subject=subject,
+                    body=personalized_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[contract.email],
+                )
+                if attachment:
+                    attachment.seek(0)
+                    email.attach(attachment.name, attachment.read(), attachment.content_type or 'application/octet-stream')
+                email.content_subtype = 'html'
+                delivered = self.send_email_message(request, email)
+                if delivered is None:
+                    return redirect(request.get_full_path())
+                if delivered:
+                    sent_addresses.add(normalized_email)
+                    contract.approval_email_sent = True
+                    contract.save(update_fields=['approval_email_sent', 'updated_at'])
+                    EmailLog.objects.create(
+                        contract=contract,
+                        recipient=contract.email,
+                        subject=subject,
+                        body=personalized_body,
+                        attachment_name=getattr(attachment, 'name', '') if attachment else '',
+                    )
+                    recipient_count += 1
+            extra_sent = 0
+            for address in extra_recipients:
+                normalized_email = address.lower()
+                if normalized_email in sent_addresses:
+                    continue
+                email = EmailMessage(
+                    subject=subject,
+                    body=body or self.default_mail_body(),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[address],
+                )
+                if attachment:
+                    attachment.seek(0)
+                    email.attach(attachment.name, attachment.read(), attachment.content_type or 'application/octet-stream')
+                email.content_subtype = 'html'
+                delivered = self.send_email_message(request, email)
+                if delivered is None:
+                    return redirect(request.get_full_path())
+                if delivered:
+                    sent_addresses.add(normalized_email)
+                    EmailLog.objects.create(
+                        contract=None,
+                        recipient=address,
+                        subject=subject,
+                        body=body or self.default_mail_body(),
+                        attachment_name=getattr(attachment, 'name', '') if attachment else '',
+                    )
+                    extra_sent += 1
+            self.message_user(request, f'已发送申请者 {recipient_count} 封，额外邮箱 {extra_sent} 封。')
+            return redirect('admin:website_contract_changelist')
+
+        contracts = queryset
+        return render(request, 'admin/website/contract/send_mail.html', {
+            'title': '发送邮件到',
+            'contracts': contracts,
+            'contract_ids': ids,
+            'subject': 'AIxOrigin 申请结果通知',
+            'body': self.default_mail_body(),
+            'extra_recipients': '',
+            'email_host': settings.EMAIL_HOST,
+            'default_from_email': settings.DEFAULT_FROM_EMAIL,
+            'mail_filters': self.get_mail_filter_context(request),
+        })
+
+    def send_email_message(self, request, email):
+        try:
+            return email.send(fail_silently=False)
+        except smtplib.SMTPAuthenticationError:
+            self.message_user(
+                request,
+                '邮件发送失败：Gmail 拒绝了当前账号或应用专用密码。请重新生成 16 位应用专用密码并更新 .env。',
+                level=messages.ERROR,
+            )
+            return None
+        except Exception as exc:
+            self.message_user(request, f'邮件发送失败：{exc}', level=messages.ERROR)
+            return None
+
+    def parse_extra_recipients(self, raw):
+        addresses = []
+        seen = set()
+        for value in re.split(r'[\s,，;；]+', raw or ''):
+            value = value.strip()
+            if not value or '@' not in value:
+                continue
+            key = value.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            addresses.append(value)
+        return addresses
+
+    def get_mail_queryset(self, request):
+        queryset = Contract.objects.all()
+        search = request.GET.get('q', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(email__icontains=search)
+                | Q(phone__icontains=search)
+                | Q(feishu_record_id__icontains=search)
+            )
+
+        exact_filters = (
+            'participation_city',
+            'team_method',
+            'complete_project',
+            'post_event_followup',
+            'public_contact',
+        )
+        for field_name in exact_filters:
+            value = request.GET.get(field_name, '').strip()
+            if value:
+                queryset = queryset.filter(**{field_name: value})
+
+        boolean_filters = ('is_approved', 'approval_email_sent')
+        for field_name in boolean_filters:
+            value = request.GET.get(field_name, '').strip()
+            if value in ('1', '0'):
+                queryset = queryset.filter(**{field_name: value == '1'})
+
+        return queryset
+
+    def get_mail_filter_context(self, request):
+        option_fields = (
+            ('participation_city', '参加方式'),
+            ('team_method', '组队方式'),
+            ('complete_project', '是否参与过完整项目'),
+            ('post_event_followup', '赛后推进'),
+            ('public_contact', '公开联系方式'),
+        )
+        filters = []
+        for field_name, label in option_fields:
+            values = (
+                Contract.objects.exclude(**{field_name: ''})
+                .order_by(field_name)
+                .values_list(field_name, flat=True)
+                .distinct()
+            )
+            filters.append({
+                'name': field_name,
+                'label': label,
+                'value': request.GET.get(field_name, ''),
+                'options': list(values),
+            })
+        return {
+            'search': request.GET.get('q', ''),
+            'options': filters,
+            'booleans': [
+                {
+                    'name': 'is_approved',
+                    'label': '是否通过审核',
+                    'value': request.GET.get('is_approved', ''),
+                },
+                {
+                    'name': 'approval_email_sent',
+                    'label': '是否发送邮件',
+                    'value': request.GET.get('approval_email_sent', ''),
+                },
+            ],
+        }
+
+    def default_mail_body(self):
+        return (
+            '<p>{{姓名}}，你好：</p>'
+            '<p>感谢你报名 AIxOrigin。你的申请状态已更新，请留意后续安排。</p>'
+            '<p>AIxOrigin 团队</p>'
+        )
+
+    def render_mail_body(self, body, contract):
+        body = body or self.default_mail_body()
+        replacements = {
+            '{{姓名}}': contract.name,
+            '{{name}}': contract.name,
+            '{{邮箱}}': contract.email,
+            '{{email}}': contract.email,
+            '{{手机号}}': contract.phone,
+            '{{phone}}': contract.phone,
+            '{{参加方式}}': contract.participation_city,
+            '{{city}}': contract.participation_city,
+        }
+        for marker, value in replacements.items():
+            body = body.replace(marker, str(value or ''))
+        return body
 
     def contract_to_export_row(self, obj, index):
         fields = (obj.feishu_raw_record or {}).get('fields') or {}
@@ -388,6 +611,53 @@ class ContractAdmin(admin.ModelAdmin):
         if isinstance(value, list):
             return '、'.join(str(item) for item in value if item) or '-'
         return str(value)
+
+    @admin.display(description='发送邮件记录')
+    def email_logs_link(self, obj):
+        count = obj.email_logs.count()
+        if not count:
+            return '-'
+        url = f'../emaillog/?contract__id__exact={obj.id}'
+        return format_html('<a href="{}">查看 {} 条</a>', url, count)
+
+
+@admin.register(EmailLog)
+class EmailLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'sent_at',
+        'recipient',
+        'contract_link',
+        'subject',
+        'attachment_name',
+    )
+    search_fields = (
+        'recipient',
+        'subject',
+        'body',
+        'contract__name',
+        'contract__email',
+        'contract__phone',
+    )
+    list_filter = (
+        'sent_at',
+        'contract',
+    )
+    readonly_fields = (
+        'contract',
+        'recipient',
+        'subject',
+        'body',
+        'attachment_name',
+        'sent_at',
+    )
+    ordering = ('-sent_at',)
+
+    @admin.display(description='申请者')
+    def contract_link(self, obj):
+        if not obj.contract_id:
+            return '额外邮箱'
+        url = f'../contract/{obj.contract_id}/change/'
+        return format_html('<a href="{}">{}</a>', url, obj.contract.name)
 
 
 def build_xlsx(rows, sheet_name='Sheet1'):

@@ -35,7 +35,7 @@ class Contract(models.Model):
     skill_research = models.PositiveSmallIntegerField('产品/用户研究', null=True, blank=True)
     skill_design = models.PositiveSmallIntegerField('设计表达', null=True, blank=True)
     skill_collaboration = models.PositiveSmallIntegerField('项目协作', null=True, blank=True)
-    skill_other = models.CharField('技能评价-其他', max_length=255, blank=True)
+    skill_other = models.TextField('技能评价-其他', blank=True)
     hardware_skills = models.JSONField('硬实力 Hardware Skills', default=list, blank=True)
     hardware_other = models.CharField('你的“硬”实力 (Hardware Skills)-其他-Text', max_length=255, blank=True)
     software_ai_skills = models.JSONField('软实力 Software & AI', default=list, blank=True)
@@ -71,3 +71,28 @@ class Contract(models.Model):
             ]
             self.feishu_record_id = str((max(numeric_ids) if numeric_ids else 0) + 1)
         super().save(*args, **kwargs)
+
+
+class EmailLog(models.Model):
+    contract = models.ForeignKey(
+        Contract,
+        verbose_name='申请者',
+        related_name='email_logs',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    recipient = models.EmailField('收件邮箱', max_length=254)
+    subject = models.CharField('邮件主题', max_length=255)
+    body = models.TextField('邮件正文', blank=True)
+    attachment_name = models.CharField('附件名称', max_length=255, blank=True)
+    sent_at = models.DateTimeField('发送时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'email_log'
+        verbose_name = '发送邮件记录'
+        verbose_name_plural = '发送邮件记录'
+        ordering = ('-sent_at',)
+
+    def __str__(self):
+        return f'{self.recipient} - {self.subject}'
