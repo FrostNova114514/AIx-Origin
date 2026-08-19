@@ -169,16 +169,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_HOME_QUICK = False
 SIMPLEUI_CONFIG = {
-    'system_keep': True,
+    'system_keep': False,
     'menus': [
         {
-            'name': '联系表单',
+            'name': '仪表盘',
             'icon': 'fas fa-address-book',
             'models': [
                 {
                     'name': '联系表单',
                     'icon': 'fas fa-list',
                     'url': 'website/contract/',
+                },
+                {
+                    'name': '队伍分配',
+                    'icon': 'fas fa-users',
+                    'url': 'website/team/',
                 },
                 {
                     'name': '发送邮件记录',

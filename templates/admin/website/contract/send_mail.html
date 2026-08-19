@@ -48,7 +48,7 @@
     </div>
   </form>
 
-  <form method="post" enctype="multipart/form-data" novalidate>
+  <form id="send-mail-form" method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     <div style="display:grid;gap:16px;max-width:960px;">
       <div class="module">
@@ -70,14 +70,18 @@
           </tr>
           <tr>
             <th style="text-align:left;">附件</th>
-            <td><input type="file" name="attachment"></td>
+            <td>
+              <input id="attachments-input" type="file" name="attachments" multiple>
+              <p style="margin:6px 0 0;color:#6b7280;">最多可添加 5 个附件。</p>
+              <div id="attachments-list" style="margin-top:8px;color:#374151;"></div>
+            </td>
           </tr>
         </table>
       </div>
 
       <div class="module">
         <h2 style="margin:0 0 12px;">勾选收件人</h2>
-        <p style="margin:0 0 12px;color:#6b7280;">可使用占位符：{{姓名}}、{{邮箱}}、{{手机号}}、{{参加方式}}。当前列表共 {{ contracts|length }} 位申请者。</p>
+        <p style="margin:0 0 12px;color:#6b7280;">可使用占位符：{{姓名}}、{{邮箱}}、{{手机号}}、{{参加方式}}。当前列表共 {{ contracts|length }} 位申请者，默认不会选中任何人。</p>
         <div style="margin-bottom:12px;">
           <button type="button" onclick="document.querySelectorAll('input[name=selected_ids]').forEach(function(item){item.checked=true})">全选</button>
           <button type="button" onclick="document.querySelectorAll('input[name=selected_ids]').forEach(function(item){item.checked=false})">取消全选</button>
@@ -99,14 +103,36 @@
             <tbody>
               {% for contract in contracts %}
               <tr>
-                <td><input type="checkbox" name="selected_ids" value="{{ contract.id }}" checked></td>
+                <td><input type="checkbox" name="selected_ids" value="{{ contract.id }}"></td>
                 <td>{{ contract.feishu_record_id|default:contract.id }}</td>
-                <td>{{ contract.name }}</td>
-                <td>{{ contract.email }}</td>
+                <td class="recipient-name">{{ contract.name }}</td>
+                <td class="recipient-email">{{ contract.email }}</td>
                 <td>{{ contract.phone }}</td>
                 <td>{{ contract.participation_city }}</td>
                 <td>{{ contract.is_approved|yesno:"是,否" }}</td>
-                <td>{{ contract.approval_email_sent|yesno:"是,否" }}</td>
+                <td>
+                  {% if contract.email_logs.all %}
+                    <div style="display:grid;gap:8px;">
+                      {% for log in contract.email_logs.all %}
+                        <details style="border:1px solid #e5e7eb;border-radius:6px;padding:8px;background:#fafafa;">
+                          <summary style="cursor:pointer;">
+                            {{ log.sent_at|date:"Y-m-d H:i" }} · {{ log.subject }}
+                          </summary>
+                          <div style="margin-top:8px;white-space:pre-wrap;">
+                            <div><strong>收件人：</strong>{{ log.recipient }}</div>
+                            {% if log.attachment_name %}
+                              <div><strong>附件：</strong>{{ log.attachment_name }}</div>
+                            {% endif %}
+                            <div style="margin-top:6px;"><strong>正文：</strong></div>
+                            <div>{{ log.body }}</div>
+                          </div>
+                        </details>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -115,13 +141,171 @@
       </div>
 
       <div style="display:flex;gap:12px;align-items:center;">
-        <button type="submit" class="default" name="send" value="1">发送邮件</button>
+        <button id="send-mail-button" type="submit" class="default">发送邮件</button>
         <a href="{% url 'admin:website_contract_changelist' %}" class="button">返回列表</a>
+        <span id="send-mail-status" style="color:#6b7280;"></span>
       </div>
     </div>
-    {% for id in contract_ids %}
-      <input type="hidden" name="contract_ids" value="{{ id }}">
-    {% endfor %}
+    <input type="hidden" name="send" value="1">
+    <input type="hidden" name="confirm_send" id="confirm-send" value="0">
   </form>
 </div>
+<script>
+  (function () {
+    var form = document.getElementById('send-mail-form');
+    var button = document.getElementById('send-mail-button');
+    var status = document.getElementById('send-mail-status');
+    var confirmField = document.getElementById('confirm-send');
+    var attachmentsInput = document.getElementById('attachments-input');
+    var attachmentsList = document.getElementById('attachments-list');
+    var selectedAttachments = [];
+    if (!form || !button) {
+      return;
+    }
+
+    function syncAttachmentsInput() {
+      if (!attachmentsInput || !window.DataTransfer) {
+        return;
+      }
+      var transfer = new DataTransfer();
+      selectedAttachments.slice(0, 5).forEach(function (file) {
+        transfer.items.add(file);
+      });
+      attachmentsInput.files = transfer.files;
+    }
+
+    function attachmentKey(file) {
+      return [file.name, file.size, file.lastModified].join(':');
+    }
+
+    function addAttachments(files) {
+      var seen = {};
+      selectedAttachments.forEach(function (file) {
+        seen[attachmentKey(file)] = true;
+      });
+      Array.prototype.slice.call(files || []).forEach(function (file) {
+        var key = attachmentKey(file);
+        if (!seen[key] && selectedAttachments.length < 5) {
+          selectedAttachments.push(file);
+          seen[key] = true;
+        }
+      });
+      syncAttachmentsInput();
+      updateAttachmentsList();
+    }
+
+    window.removeSelectedAttachment = function (index) {
+      selectedAttachments.splice(index, 1);
+      syncAttachmentsInput();
+      updateAttachmentsList();
+    };
+
+    function updateAttachmentsList() {
+      if (!attachmentsInput || !attachmentsList) {
+        return;
+      }
+      var files = selectedAttachments.slice(0, 5);
+      if (!files.length) {
+        attachmentsList.innerHTML = '';
+        return;
+      }
+      var html = '<div style="margin-bottom:4px;font-weight:600;">已选附件：</div><ol style="margin:0;padding-left:20px;">';
+      files.forEach(function (file, index) {
+        html += '<li style="margin-bottom:4px;">' + file.name + ' <button type="button" onclick="removeSelectedAttachment(' + index + ')" style="margin-left:8px;">移除</button></li>';
+      });
+      html += '</ol>';
+      if (selectedAttachments.length >= 5) {
+        html += '<div style="margin-top:4px;color:#6b7280;">已达到 5 个附件上限。</div>';
+      }
+      attachmentsList.innerHTML = html;
+    }
+
+    if (attachmentsInput) {
+      attachmentsInput.addEventListener('change', function () {
+        addAttachments(attachmentsInput.files);
+      });
+      updateAttachmentsList();
+    }
+
+    function parseExtraRecipients(value) {
+      var seen = {};
+      return (value || '')
+        .split(/[\s,，;；]+/)
+        .map(function (item) { return item.trim(); })
+        .filter(function (item) {
+          if (!item || item.indexOf('@') === -1) {
+            return false;
+          }
+          var key = item.toLowerCase();
+          if (seen[key]) {
+            return false;
+          }
+          seen[key] = true;
+          return true;
+        });
+    }
+
+    function selectedRecipients() {
+      var rows = [];
+      document.querySelectorAll('input[name="selected_ids"]:checked').forEach(function (checkbox) {
+        var tr = checkbox.closest('tr');
+        if (!tr) {
+          return;
+        }
+        var nameCell = tr.querySelector('.recipient-name');
+        var emailCell = tr.querySelector('.recipient-email');
+        var name = nameCell ? nameCell.textContent.trim() : '';
+        var email = emailCell ? emailCell.textContent.trim() : '';
+        if (email) {
+          rows.push((name ? name + ' - ' : '') + email);
+        }
+      });
+      return rows;
+    }
+
+    form.addEventListener('submit', function (event) {
+      var extraRecipients = (form.querySelector('textarea[name="extra_recipients"]') || {}).value || '';
+      var recipients = selectedRecipients();
+      var extraList = parseExtraRecipients(extraRecipients);
+      var allRecipients = recipients.concat(extraList.map(function (email) {
+        return '额外邮箱 - ' + email;
+      }));
+      if (!allRecipients.length) {
+        event.preventDefault();
+        if (status) {
+          status.textContent = '请先勾选收件人，或在额外收件邮箱中填写邮箱。';
+          status.style.color = '#b91c1c';
+        }
+        return;
+      }
+      if (confirmField && confirmField.value !== '1') {
+        event.preventDefault();
+        var previewLimit = 50;
+        var preview = allRecipients.slice(0, previewLimit).join('\n');
+        if (allRecipients.length > previewLimit) {
+          preview += '\n...另有 ' + (allRecipients.length - previewLimit) + ' 位收件人';
+        }
+        var confirmed = window.confirm(
+          '确认发送邮件给以下 ' + allRecipients.length + ' 个收件人吗？\n\n' + preview
+        );
+        if (!confirmed) {
+          if (status) {
+            status.textContent = '已取消发送。';
+            status.style.color = '#6b7280';
+          }
+          return;
+        }
+        confirmField.value = '1';
+        form.requestSubmit ? form.requestSubmit(button) : form.submit();
+        return;
+      }
+      button.disabled = true;
+      button.textContent = '正在发送...';
+      if (status) {
+        status.textContent = '邮件正在发送，请不要关闭页面。';
+        status.style.color = '#6b7280';
+      }
+    });
+  })();
+</script>
 {% endblock %}

@@ -14,9 +14,10 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils import timezone
+from django.utils.html import escape as html_escape
 from django.utils.html import format_html, format_html_join
 
-from .models import Contract, EmailLog
+from .models import Contract, EmailLog, Team
 from .questionnaire_fields import QUESTIONNAIRE_FIELD_ORDER
 
 
@@ -62,12 +63,10 @@ class ContractAdmin(admin.ModelAdmin):
         'identity_other',
         'feishu_summary',
         'is_approved',
-        'approval_email_sent',
         'email_logs_link',
     )
     list_editable = (
         'is_approved',
-        'approval_email_sent',
     )
     search_fields = (
         'name',
@@ -88,7 +87,6 @@ class ContractAdmin(admin.ModelAdmin):
         'post_event_followup',
         'public_contact',
         'is_approved',
-        'approval_email_sent',
         'created_at',
     )
     readonly_fields = (
@@ -142,7 +140,6 @@ class ContractAdmin(admin.ModelAdmin):
                 'identity_other',
                 'feishu_summary',
                 'is_approved',
-                'approval_email_sent',
             )
         }),
         ('系统信息', {
@@ -215,34 +212,39 @@ class ContractAdmin(admin.ModelAdmin):
         return response
 
     def send_mail_view(self, request):
-        queryset = self.get_mail_queryset(request).order_by('created_at', 'id')
-        ids = [str(item.id) for item in queryset]
+        queryset = self.get_mail_queryset(request).prefetch_related('email_logs').order_by('created_at', 'id')
 
         if request.method == 'POST' and 'send' in request.POST:
-            contract_ids = request.POST.getlist('selected_ids') or request.POST.getlist('contract_ids')
-            contracts = Contract.objects.filter(id__in=contract_ids).order_by('created_at', 'id')
+            if request.POST.get('confirm_send') != '1':
+                self.message_user(request, '邮件未发送：请先在确认窗口中核对收件人并确认发送。', level=messages.WARNING)
+                return redirect(request.get_full_path())
+            contract_ids = request.POST.getlist('selected_ids')
+            contracts = queryset.filter(id__in=contract_ids)
             subject = request.POST.get('subject', '').strip() or 'AIxOrigin 申请结果通知'
             body = request.POST.get('body', '').strip()
             extra_recipients = self.parse_extra_recipients(request.POST.get('extra_recipients', ''))
-            attachment = request.FILES.get('attachment')
+            attachments = request.FILES.getlist('attachments')[:5]
+            attachment_names = '、'.join(attachment.name for attachment in attachments)
             recipient_count = 0
             sent_addresses = set()
+            if not contracts.exists() and not extra_recipients:
+                self.message_user(request, '没有可发送的收件人：请先勾选申请者，或填写额外收件邮箱。', level=messages.WARNING)
+                return redirect(request.get_full_path())
             for contract in contracts:
                 if not contract.email:
                     continue
                 normalized_email = contract.email.strip().lower()
                 if normalized_email in sent_addresses:
                     continue
-                personalized_body = self.render_mail_body(body, contract)
+                personalized_text = self.render_mail_body(body, contract)
+                personalized_body = self.text_to_email_html(personalized_text)
                 email = EmailMessage(
                     subject=subject,
                     body=personalized_body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[contract.email],
                 )
-                if attachment:
-                    attachment.seek(0)
-                    email.attach(attachment.name, attachment.read(), attachment.content_type or 'application/octet-stream')
+                self.attach_files(email, attachments)
                 email.content_subtype = 'html'
                 delivered = self.send_email_message(request, email)
                 if delivered is None:
@@ -255,8 +257,8 @@ class ContractAdmin(admin.ModelAdmin):
                         contract=contract,
                         recipient=contract.email,
                         subject=subject,
-                        body=personalized_body,
-                        attachment_name=getattr(attachment, 'name', '') if attachment else '',
+                        body=personalized_text,
+                        attachment_name=attachment_names,
                     )
                     recipient_count += 1
             extra_sent = 0
@@ -264,15 +266,15 @@ class ContractAdmin(admin.ModelAdmin):
                 normalized_email = address.lower()
                 if normalized_email in sent_addresses:
                     continue
+                message_text = body or self.default_mail_body()
+                message_body = self.text_to_email_html(message_text)
                 email = EmailMessage(
                     subject=subject,
-                    body=body or self.default_mail_body(),
+                    body=message_body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[address],
                 )
-                if attachment:
-                    attachment.seek(0)
-                    email.attach(attachment.name, attachment.read(), attachment.content_type or 'application/octet-stream')
+                self.attach_files(email, attachments)
                 email.content_subtype = 'html'
                 delivered = self.send_email_message(request, email)
                 if delivered is None:
@@ -283,18 +285,21 @@ class ContractAdmin(admin.ModelAdmin):
                         contract=None,
                         recipient=address,
                         subject=subject,
-                        body=body or self.default_mail_body(),
-                        attachment_name=getattr(attachment, 'name', '') if attachment else '',
+                        body=message_text,
+                        attachment_name=attachment_names,
                     )
                     extra_sent += 1
-            self.message_user(request, f'已发送申请者 {recipient_count} 封，额外邮箱 {extra_sent} 封。')
+            total_sent = recipient_count + extra_sent
+            if total_sent:
+                self.message_user(request, f'已发送申请者 {recipient_count} 封，额外邮箱 {extra_sent} 封。')
+            else:
+                self.message_user(request, '没有邮件被发送：请检查所选申请者是否有邮箱，或填写额外收件邮箱。', level=messages.WARNING)
             return redirect('admin:website_contract_changelist')
 
         contracts = queryset
         return render(request, 'admin/website/contract/send_mail.html', {
             'title': '发送邮件到',
             'contracts': contracts,
-            'contract_ids': ids,
             'subject': 'AIxOrigin 申请结果通知',
             'body': self.default_mail_body(),
             'extra_recipients': '',
@@ -331,6 +336,15 @@ class ContractAdmin(admin.ModelAdmin):
             addresses.append(value)
         return addresses
 
+    def attach_files(self, email, attachments):
+        for attachment in attachments:
+            attachment.seek(0)
+            email.attach(
+                attachment.name,
+                attachment.read(),
+                attachment.content_type or 'application/octet-stream',
+            )
+
     def get_mail_queryset(self, request):
         queryset = Contract.objects.all()
         search = request.GET.get('q', '').strip()
@@ -354,7 +368,7 @@ class ContractAdmin(admin.ModelAdmin):
             if value:
                 queryset = queryset.filter(**{field_name: value})
 
-        boolean_filters = ('is_approved', 'approval_email_sent')
+        boolean_filters = ('is_approved',)
         for field_name in boolean_filters:
             value = request.GET.get(field_name, '').strip()
             if value in ('1', '0'):
@@ -393,19 +407,14 @@ class ContractAdmin(admin.ModelAdmin):
                     'label': '是否通过审核',
                     'value': request.GET.get('is_approved', ''),
                 },
-                {
-                    'name': 'approval_email_sent',
-                    'label': '是否发送邮件',
-                    'value': request.GET.get('approval_email_sent', ''),
-                },
             ],
         }
 
     def default_mail_body(self):
         return (
-            '<p>{{姓名}}，你好：</p>'
-            '<p>感谢你报名 AIxOrigin。你的申请状态已更新，请留意后续安排。</p>'
-            '<p>AIxOrigin 团队</p>'
+            '{{姓名}}，你好：\n\n'
+            '感谢你报名 AIxOrigin。你的申请状态已更新，请留意后续安排。\n\n'
+            'AIxOrigin 团队'
         )
 
     def render_mail_body(self, body, contract):
@@ -423,6 +432,20 @@ class ContractAdmin(admin.ModelAdmin):
         for marker, value in replacements.items():
             body = body.replace(marker, str(value or ''))
         return body
+
+    def text_to_email_html(self, text):
+        text = text or ''
+        paragraphs = [
+            paragraph.strip()
+            for paragraph in re.split(r'\n\s*\n+', text.strip())
+            if paragraph.strip()
+        ]
+        if not paragraphs:
+            return ''
+        return ''.join(
+            '<p>{}</p>'.format(html_escape(paragraph).replace('\n', '<br>'))
+            for paragraph in paragraphs
+        )
 
     def contract_to_export_row(self, obj, index):
         fields = (obj.feishu_raw_record or {}).get('fields') or {}
@@ -470,7 +493,6 @@ class ContractAdmin(admin.ModelAdmin):
             field('你的身份-其他-Text', obj.identity_other),
             field('总结', obj.feishu_summary),
             '是' if obj.is_approved else '否',
-            '是' if obj.approval_email_sent else '否',
         ]
 
     def export_value(self, value):
@@ -658,6 +680,106 @@ class EmailLogAdmin(admin.ModelAdmin):
             return '额外邮箱'
         url = f'../contract/{obj.contract_id}/change/'
         return format_html('<a href="{}">{}</a>', url, obj.contract.name)
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = (
+        'number',
+        'name',
+        'member_count',
+        'member_details',
+        'updated_at',
+    )
+    search_fields = (
+        'name',
+        'notes',
+        'members__name',
+        'members__email',
+        'members__phone',
+        'members__feishu_record_id',
+    )
+    filter_horizontal = ('members',)
+    readonly_fields = (
+        'number',
+        'member_details',
+        'created_at',
+        'updated_at',
+    )
+    fieldsets = (
+        ('队伍信息', {
+            'fields': (
+                'number',
+                'name',
+                'members',
+                'notes',
+            )
+        }),
+        ('成员详细信息', {
+            'fields': (
+                'member_details',
+            )
+        }),
+        ('系统信息', {
+            'fields': (
+                'created_at',
+                'updated_at',
+            )
+        }),
+    )
+    ordering = ('number', 'name')
+
+    @admin.display(description='成员数量')
+    def member_count(self, obj):
+        return obj.members.count()
+
+    @admin.display(description='成员详细信息')
+    def member_details(self, obj):
+        if not obj.pk:
+            return '保存队伍后可查看成员详细信息。'
+
+        members = obj.members.all().order_by('feishu_record_id', 'id')
+        if not members:
+            return '-'
+
+        rows = []
+        for member in members:
+            url = f'../contract/{member.id}/change/'
+            rows.append((
+                format_html('<a href="{}">{}</a>', url, member.name),
+                member.feishu_record_id or member.id,
+                member.email,
+                member.phone,
+                member.participation_city,
+                member.track_hong_kong or member.track_shenzhen or '-',
+                member.background,
+            ))
+
+        return format_html(
+            '<table style="width:100%;border-collapse:collapse;">'
+            '<thead><tr>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">姓名</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">编号</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">邮箱</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">手机号</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">参加方式</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">赛道</th>'
+            '<th style="text-align:left;border:1px solid #e5e7eb;padding:8px;background:#f8fafc;">学校/工作背景</th>'
+            '</tr></thead><tbody>{}</tbody></table>',
+            format_html_join(
+                '',
+                '<tr>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;">{}</td>'
+                '<td style="border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;">{}</td>'
+                '</tr>',
+                rows,
+            )
+        )
 
 
 def build_xlsx(rows, sheet_name='Sheet1'):

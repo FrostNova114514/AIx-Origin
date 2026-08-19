@@ -45,7 +45,7 @@ class Contract(models.Model):
     public_contact = models.CharField('是否愿意公开联系方式给合作方', max_length=20, blank=True)
 
     # 系统保存内容
-    feishu_summary = models.TextField('飞书总结', blank=True)
+    feishu_summary = models.TextField('AI总结', blank=True)
     feishu_raw_record = models.JSONField('飞书原始记录', default=dict, blank=True)
     is_approved = models.BooleanField('是否通过审核', default=False)
     approval_email_sent = models.BooleanField('是否发送邮件', default=False)
@@ -96,3 +96,32 @@ class EmailLog(models.Model):
 
     def __str__(self):
         return f'{self.recipient} - {self.subject}'
+
+
+class Team(models.Model):
+    number = models.PositiveIntegerField('队伍序号', unique=True, null=True, blank=True)
+    name = models.CharField('队伍名称', max_length=160, unique=True)
+    members = models.ManyToManyField(
+        Contract,
+        verbose_name='队伍成员',
+        related_name='teams',
+        blank=True,
+    )
+    notes = models.TextField('备注', blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        db_table = 'team'
+        verbose_name = '队伍分配'
+        verbose_name_plural = '队伍分配'
+        ordering = ('number', 'name')
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.number:
+            max_number = Team.objects.aggregate(models.Max('number'))['number__max'] or 0
+            self.number = max_number + 1
+        super().save(*args, **kwargs)
