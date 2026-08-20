@@ -1,5 +1,7 @@
 from django.db import models
 
+from .team_sync import sync_contract_team_membership
+
 
 class Contract(models.Model):
     # 问卷基础身份信息
@@ -71,6 +73,8 @@ class Contract(models.Model):
             ]
             self.feishu_record_id = str((max(numeric_ids) if numeric_ids else 0) + 1)
         super().save(*args, **kwargs)
+        if self.team_name.strip():
+            sync_contract_team_membership(self)
 
 
 class EmailLog(models.Model):
@@ -125,3 +129,10 @@ class Team(models.Model):
             max_number = Team.objects.aggregate(models.Max('number'))['number__max'] or 0
             self.number = max_number + 1
         super().save(*args, **kwargs)
+
+
+class MailSender(Contract):
+    class Meta:
+        proxy = True
+        verbose_name = '发送邮件'
+        verbose_name_plural = '发送邮件'

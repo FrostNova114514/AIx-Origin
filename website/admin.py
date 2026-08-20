@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
 from django.core.mail import EmailMessage
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import path
@@ -17,8 +17,48 @@ from django.utils import timezone
 from django.utils.html import escape as html_escape
 from django.utils.html import format_html, format_html_join
 
-from .models import Contract, EmailLog, Team
+from .models import Contract, EmailLog, MailSender, Team
 from .questionnaire_fields import QUESTIONNAIRE_FIELD_ORDER
+
+
+class EmailLogCountFilter(admin.SimpleListFilter):
+    title = '发送邮件记录数量'
+    parameter_name = 'email_log_count'
+
+    def lookups(self, request, model_admin):
+        counts = (
+            model_admin.get_queryset(request)
+            .annotate(email_log_count=Count('email_logs'))
+            .values_list('email_log_count', flat=True)
+            .distinct()
+            .order_by('email_log_count')
+        )
+        return [(str(count), str(count)) for count in counts]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value is None:
+            return queryset
+        if not value.isdigit():
+            return queryset
+        return queryset.annotate(email_log_count=Count('email_logs')).filter(email_log_count=int(value))
+
+
+class TeamNameFilter(admin.SimpleListFilter):
+    title = '队伍名称'
+    parameter_name = 'team_name_filter'
+
+    def lookups(self, request, model_admin):
+        return [
+            (str(team.id), team.name)
+            for team in Team.objects.order_by('number', 'name')
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if not value:
+            return queryset
+        return queryset.filter(teams__id=value).distinct()
 
 
 @admin.register(Contract)
@@ -41,7 +81,7 @@ class ContractAdmin(admin.ModelAdmin):
         'track_shenzhen',
         'phone',
         'project_preview',
-        'team_method',
+        'team_method_display',
         'team_method_extra_preview',
         'team_name',
         'github_homepage_link',
@@ -82,11 +122,13 @@ class ContractAdmin(admin.ModelAdmin):
     )
     list_filter = (
         'participation_city',
+        TeamNameFilter,
         'team_method',
         'complete_project',
         'post_event_followup',
         'public_contact',
         'is_approved',
+        EmailLogCountFilter,
         'created_at',
     )
     readonly_fields = (
@@ -157,6 +199,9 @@ class ContractAdmin(admin.ModelAdmin):
     )
 
     questionnaire_field_order = QUESTIONNAIRE_FIELD_ORDER
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('teams')
 
     def get_urls(self):
         urls = super().get_urls()
@@ -314,7 +359,7 @@ class ContractAdmin(admin.ModelAdmin):
         except smtplib.SMTPAuthenticationError:
             self.message_user(
                 request,
-                '邮件发送失败：Gmail 拒绝了当前账号或应用专用密码。请重新生成 16 位应用专用密码并更新 .env。',
+                '邮件发送失败：邮箱服务拒绝了当前账号或密码。请检查邮箱账号、邮箱密码或 SMTP 授权码，并更新 .env。',
                 level=messages.ERROR,
             )
             return None
@@ -374,6 +419,24 @@ class ContractAdmin(admin.ModelAdmin):
             if value in ('1', '0'):
                 queryset = queryset.filter(**{field_name: value == '1'})
 
+        team_id = request.GET.get('team_name_filter', '').strip()
+        if team_id:
+            queryset = queryset.filter(teams__id=team_id).distinct()
+
+        email_log_count = request.GET.get('email_log_count', '').strip()
+        if email_log_count.isdigit():
+            queryset = queryset.annotate(email_log_count=Count('email_logs')).filter(
+                email_log_count=int(email_log_count)
+            )
+
+        created_at_gte = request.GET.get('created_at__gte', '').strip()
+        if created_at_gte:
+            queryset = queryset.filter(created_at__gte=created_at_gte)
+
+        created_at_lte = request.GET.get('created_at__lte', '').strip()
+        if created_at_lte:
+            queryset = queryset.filter(created_at__lte=created_at_lte)
+
         return queryset
 
     def get_mail_filter_context(self, request):
@@ -398,9 +461,34 @@ class ContractAdmin(admin.ModelAdmin):
                 'value': request.GET.get(field_name, ''),
                 'options': list(values),
             })
+        email_log_counts = (
+            Contract.objects.annotate(email_log_count=Count('email_logs'))
+            .values_list('email_log_count', flat=True)
+            .distinct()
+            .order_by('email_log_count')
+        )
         return {
             'search': request.GET.get('q', ''),
             'options': filters,
+            'teams': {
+                'name': 'team_name_filter',
+                'label': '队伍名称',
+                'value': request.GET.get('team_name_filter', ''),
+                'options': [
+                    {'value': str(team.id), 'label': team.name}
+                    for team in Team.objects.order_by('number', 'name')
+                ],
+            },
+            'email_log_counts': {
+                'name': 'email_log_count',
+                'label': '发送邮件记录数量',
+                'value': request.GET.get('email_log_count', ''),
+                'options': [str(count) for count in email_log_counts],
+            },
+            'created_at': {
+                'start': request.GET.get('created_at__gte', ''),
+                'end': request.GET.get('created_at__lte', ''),
+            },
             'booleans': [
                 {
                     'name': 'is_approved',
@@ -556,6 +644,21 @@ class ContractAdmin(admin.ModelAdmin):
     def project_preview(self, obj):
         return self.truncate(obj.project_description, 36)
 
+    @admin.display(description='请选择组队方式')
+    def team_method_display(self, obj):
+        team_names = list(obj.teams.values_list('name', flat=True))
+        if team_names:
+            return '、'.join(team_names)
+
+        value = (obj.team_method or '').strip()
+        if '随机匹配' in value:
+            return '希望由主办方随机匹配队友'
+        if '自行组队' in value:
+            return '自行组队（请补充队友姓名/联系方式）'
+        if '个人参赛' in value:
+            return '个人参赛'
+        return value or '-'
+
     @admin.display(description='请选择组队方式（支持 1—5 人/队，允许跨校及跨机构组队）-自行组队（请补充队友姓名/联系方式）-补充内容')
     def team_method_extra_preview(self, obj):
         return self.truncate(obj.team_method_extra, 42)
@@ -680,6 +783,21 @@ class EmailLogAdmin(admin.ModelAdmin):
             return '额外邮箱'
         url = f'../contract/{obj.contract_id}/change/'
         return format_html('<a href="{}">{}</a>', url, obj.contract.name)
+
+
+@admin.register(MailSender)
+class MailSenderAdmin(ContractAdmin):
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        return self.send_mail_view(request)
 
 
 @admin.register(Team)

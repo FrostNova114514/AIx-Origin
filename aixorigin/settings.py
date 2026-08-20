@@ -181,6 +181,11 @@ SIMPLEUI_CONFIG = {
                     'url': 'website/contract/',
                 },
                 {
+                    'name': '发送邮件',
+                    'icon': 'fas fa-paper-plane',
+                    'url': 'website/mailsender/',
+                },
+                {
                     'name': '队伍分配',
                     'icon': 'fas fa-users',
                     'url': 'website/team/',
